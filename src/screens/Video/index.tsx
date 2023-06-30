@@ -60,17 +60,23 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 
 	const onLoad = () => {
 		setIsLoading(false);
+		startHideActionTimeout();
+	};
 
+	const startHideActionTimeout = () => {
 		timerRef.current = setTimeout(() => {
 			setShouldHideActions(true);
 		}, timeout);
 	};
 
+	const stopHideActionTimeout = () => {
+		if (timerRef.current) clearTimeout(timerRef.current);
+	};
+
 	const togglePauseState = () => {
-		// Clear the timeout when video gets paused
-		if (!isPaused && timerRef.current) {
-			clearTimeout(timerRef.current);
-		}
+		if (!isPaused)
+			stopHideActionTimeout(); // Clear the timeout when video gets paused
+		else startHideActionTimeout(); // Start the timeout when video gets played
 
 		setIsPaused((isPaused) => !isPaused);
 	};
@@ -78,7 +84,10 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const onOverlayTouchEnd = () => {
 		if (shouldHideActions) {
 			setShouldHideActions(false);
-			if (timerRef.current) clearTimeout(timerRef.current);
+			startHideActionTimeout(); // Start the timeout when overlay is presented
+		} else {
+			setShouldHideActions(true);
+			stopHideActionTimeout(); // Clear the timeout when overlay gets hidden
 		}
 	};
 
@@ -103,7 +112,7 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 			) : (
 				<Overlay
 					styles={{ justifyContent: "space-between" }}
-					shouldHide={shouldHideActions}
+					shouldHide={shouldHideActions && !isPaused}
 					onTouchEnd={onOverlayTouchEnd}
 				>
 					<TopBar
