@@ -1,10 +1,27 @@
 import { StackParamList } from "../../router/types";
 import { logError } from "../../utils/log";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { FunctionComponent, useState } from "react";
-import { Dimensions, Linking, Share, StyleSheet, View } from "react-native";
-import VideoPlayer from "react-native-media-console";
-import { FAB, Text, Tooltip } from "react-native-paper";
+import { MotiView } from "moti";
+import { FunctionComponent, PropsWithChildren, useRef, useState } from "react";
+import {
+	Dimensions,
+	Linking,
+	Share,
+	StyleProp,
+	StyleSheet,
+	View,
+	ViewProps,
+	ViewStyle,
+} from "react-native";
+import {
+	ActivityIndicator,
+	Appbar,
+	FAB,
+	IconButton,
+	Text,
+	Tooltip,
+} from "react-native-paper";
+import Video from "react-native-video";
 
 type Props = NativeStackScreenProps<StackParamList, "Video">;
 
@@ -13,8 +30,13 @@ const { width } = Dimensions.get("window");
 const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const { params } = route;
 	const { source, title, url, cover } = params;
-	const [isFullScreen, setIsFullScreen] = useState(false);
-	const [isControlsVisible, setIsControlsVisible] = useState(true);
+	const [isLoading, setIsLoading] = useState(true);
+	const [isPaused, setIsPaused] = useState(false);
+	const [isFullscreen, setIsFullScreen] = useState(false);
+	const [shouldHideActions, setShouldHideActions] = useState(false);
+	const playerRef = useRef<Video | null>(null);
+	const timerRef = useRef<ReturnType<typeof setTimeout>>();
+	const timeout = 5000;
 
 	const onBackActionPress = () => {
 		navigation.goBack();
@@ -36,53 +58,157 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 		await Linking.openURL(url);
 	};
 
+	const onLoad = () => {
+		setIsLoading(false);
+
+		timerRef.current = setTimeout(() => {
+			setShouldHideActions(true);
+		}, timeout);
+	};
+
+	const togglePauseState = () => {
+		// Clear the timeout when video gets paused
+		if (!isPaused && timerRef.current) {
+			clearTimeout(timerRef.current);
+		}
+
+		setIsPaused((isPaused) => !isPaused);
+	};
+
+	const onOverlayTouchEnd = () => {
+		if (shouldHideActions) {
+			setShouldHideActions(false);
+			if (timerRef.current) clearTimeout(timerRef.current);
+		}
+	};
+
 	return (
 		<View style={styles.container}>
-			<VideoPlayer
-				disableVolume
-				tapAnywhereToPause
-				toggleResizeModeOnFullscreen={false}
-				fullscreen={isFullScreen}
+			<Video
+				ref={(ref) => playerRef.current === ref}
 				source={{ uri: source }}
-				style={styles.backgroundVideo}
+				style={styles.video}
 				poster={cover}
-				onBack={onBackActionPress}
-				controlTimeoutDelay={5000}
-				onEnterFullscreen={() => setIsFullScreen(true)}
-				onExitFullscreen={() => setIsFullScreen(false)}
-				onHideControls={() => setIsControlsVisible(false)}
-				onShowControls={() => setIsControlsVisible(true)}
+				onLoad={onLoad}
+				paused={isPaused}
+				fullscreen={isFullscreen}
 			/>
-			{isControlsVisible ? (
-				<>
-					<View style={styles.titleContainer}>
-						<Text variant="titleLarge" style={styles.title}>
-							{title}
-						</Text>
+			{isLoading ? (
+				<Overlay
+					styles={{ alignItems: "center", justifyContent: "center" }}
+					shouldHide={false}
+				>
+					<ActivityIndicator />
+				</Overlay>
+			) : (
+				<Overlay
+					styles={{ justifyContent: "space-between" }}
+					shouldHide={shouldHideActions}
+					onTouchEnd={onOverlayTouchEnd}
+				>
+					<TopBar
+						onBackActionPress={onBackActionPress}
+						onShareActionPress={onShareActionPress}
+						onOpenInBrowserActionPress={onOpenInBrowserActionPress}
+					/>
+					<View style={{ alignItems: "center" }}>
+						<IconButton
+							icon={isPaused ? "play" : "pause"}
+							size={50}
+							onPress={togglePauseState}
+							mode="contained-tonal"
+						/>
 					</View>
-					<View style={styles.fabActions}>
-						<Tooltip title="Open in browser">
-							<FAB
-								icon="launch"
-								accessibilityLabel="Open in browser"
-								onPress={onOpenInBrowserActionPress}
-								style={styles.fab}
-								color={"#fff"}
-							/>
-						</Tooltip>
-						<Tooltip title="Share">
-							<FAB
-								icon="share"
-								accessibilityLabel="Share"
-								onPress={onShareActionPress}
-								style={styles.fab}
-								color={"#fff"}
-							/>
-						</Tooltip>
-					</View>
-				</>
-			) : null}
+					<BottomBar
+						isFullscreen={isFullscreen}
+						onFullScreenPress={() =>
+							setIsFullScreen((isFullscreen) => !isFullscreen)
+						}
+					/>
+				</Overlay>
+			)}
 		</View>
+	);
+};
+
+interface TopBarProps {
+	onBackActionPress: () => void;
+	onShareActionPress: () => void;
+	onOpenInBrowserActionPress: () => void;
+}
+
+const TopBar: FunctionComponent<TopBarProps> = ({
+	onBackActionPress,
+	onShareActionPress,
+	onOpenInBrowserActionPress,
+}) => (
+	<View>
+		<Appbar.Header style={{ backgroundColor: "transparent" }}>
+			<Appbar.BackAction onPress={onBackActionPress} />
+			<Appbar.Content title="" />
+			<Tooltip title="Share">
+				<Appbar.Action
+					icon="share"
+					onPress={onShareActionPress}
+					accessibilityHint="Share video"
+					accessibilityLabel="Share video"
+				/>
+			</Tooltip>
+			<Tooltip title="Open in browser">
+				<Appbar.Action
+					icon="launch"
+					onPress={onOpenInBrowserActionPress}
+					accessibilityHint="Open in browser"
+					accessibilityLabel="Open in browser"
+				/>
+			</Tooltip>
+		</Appbar.Header>
+	</View>
+);
+
+interface BottomBarProps {
+	isFullscreen: boolean;
+	onFullScreenPress: () => void;
+}
+
+const BottomBar: FunctionComponent<BottomBarProps> = ({
+	isFullscreen,
+	onFullScreenPress,
+}) => {
+	return (
+		<View>
+			<Tooltip title="Fullscreen">
+				<IconButton
+					icon={isFullscreen ? "fullscreen-exit" : "fullscreen"}
+					size={24}
+					onPress={onFullScreenPress}
+					accessibilityHint="Toggle fullscreen"
+					accessibilityLabel="Toggle fullscreen"
+				/>
+			</Tooltip>
+		</View>
+	);
+};
+
+interface OverlayProps extends ViewProps {
+	shouldHide: boolean;
+	styles?: StyleProp<ViewStyle>;
+}
+
+const Overlay: FunctionComponent<PropsWithChildren<OverlayProps>> = ({
+	children,
+	shouldHide,
+	styles: _styles,
+	...props
+}) => {
+	return (
+		<MotiView
+			style={[styles.overlay, _styles]}
+			animate={{ opacity: shouldHide ? 0 : 1 }}
+			{...props}
+		>
+			{children}
+		</MotiView>
 	);
 };
 
@@ -97,26 +223,14 @@ const styles = StyleSheet.create({
 		padding: 4,
 		paddingBottom: 24,
 	},
-	backgroundVideo: {
+	video: {
 		flex: 1,
 	},
-	titleContainer: {
+	overlay: {
+		flex: 1,
 		position: "absolute",
-		bottom: 100,
-		left: 16,
-		width: width * (3 / 4),
-	},
-	title: {
-		color: "#fff",
-	},
-	fabActions: {
-		position: "absolute",
-		gap: 16,
-		bottom: 100,
-		right: 16,
-	},
-	fab: {
-		backgroundColor: "transparent",
+		width: "100%",
+		height: "100%",
 	},
 });
 
