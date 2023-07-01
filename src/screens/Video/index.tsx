@@ -1,42 +1,53 @@
 import { StackParamList } from "../../router/types";
 import { logError } from "../../utils/log";
+import { secondsToHMS } from "../../utils/time";
+import Slider from "@react-native-community/slider";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MotiView } from "moti";
-import { FunctionComponent, PropsWithChildren, useRef, useState } from "react";
 import {
-	Dimensions,
+	FunctionComponent,
+	PropsWithChildren,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import {
 	Linking,
+	Pressable,
 	Share,
 	StyleProp,
 	StyleSheet,
 	View,
-	ViewProps,
 	ViewStyle,
 } from "react-native";
 import {
 	ActivityIndicator,
 	Appbar,
-	FAB,
 	IconButton,
 	Text,
 	Tooltip,
+	useTheme,
 } from "react-native-paper";
-import Video from "react-native-video";
+import Video, {
+	OnLoadData,
+	OnProgressData,
+	OnSeekData,
+} from "react-native-video";
 
 type Props = NativeStackScreenProps<StackParamList, "Video">;
 
-const { width } = Dimensions.get("window");
+const initialLoadHideTimeout = 2000;
 
 const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const { params } = route;
 	const { source, title, url, cover } = params;
+	const [videoData, setVideoData] = useState<OnLoadData | undefined>();
+	const [currentTime, setCurrentTime] = useState<number>(0);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isPaused, setIsPaused] = useState(false);
 	const [isFullscreen, setIsFullScreen] = useState(false);
 	const [shouldHideActions, setShouldHideActions] = useState(false);
 	const playerRef = useRef<Video | null>(null);
-	const timerRef = useRef<ReturnType<typeof setTimeout>>();
-	const timeout = 5000;
 
 	const onBackActionPress = () => {
 		navigation.goBack();
@@ -58,25 +69,29 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 		await Linking.openURL(url);
 	};
 
-	const onLoad = () => {
+	const onLoad = (data: OnLoadData) => {
+		setVideoData(data);
 		setIsLoading(false);
-		startHideActionTimeout();
+		hideActionsAfterTimeout();
 	};
 
-	const startHideActionTimeout = () => {
-		timerRef.current = setTimeout(() => {
-			setShouldHideActions(true);
-		}, timeout);
+	const onBuffer = () => {
+		setIsLoading(true);
 	};
 
-	const stopHideActionTimeout = () => {
-		if (timerRef.current) clearTimeout(timerRef.current);
+	const onProgress = (data: OnProgressData) => {
+		setCurrentTime(data.currentTime);
+		setIsLoading(false);
+	};
+
+	const hideActionsAfterTimeout = () => {
+		// setTimeout(() => {
+		// 	setShouldHideActions(true);
+		// }, initialLoadHideTimeout);
 	};
 
 	const togglePauseState = () => {
-		if (!isPaused)
-			stopHideActionTimeout(); // Clear the timeout when video gets paused
-		else startHideActionTimeout(); // Start the timeout when video gets played
+		if (isPaused) hideActionsAfterTimeout();
 
 		setIsPaused((isPaused) => !isPaused);
 	};
@@ -84,11 +99,17 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const onOverlayTouchEnd = () => {
 		if (shouldHideActions) {
 			setShouldHideActions(false);
-			startHideActionTimeout(); // Start the timeout when overlay is presented
 		} else {
 			setShouldHideActions(true);
-			stopHideActionTimeout(); // Clear the timeout when overlay gets hidden
 		}
+	};
+
+	const onFullScreenPress = () => {
+		setIsFullScreen((isFullscreen) => !isFullscreen);
+	};
+
+	const onSeek = (value: number) => {
+		playerRef.current?.seek(value);
 	};
 
 	return (
@@ -98,9 +119,12 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 				source={{ uri: source }}
 				style={styles.video}
 				poster={cover}
-				onLoad={onLoad}
 				paused={isPaused}
 				fullscreen={isFullscreen}
+				progressUpdateInterval={750}
+				onLoad={onLoad}
+				onProgress={onProgress}
+				onBuffer={onBuffer}
 			/>
 			{isLoading ? (
 				<Overlay
@@ -110,31 +134,34 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 					<ActivityIndicator />
 				</Overlay>
 			) : (
-				<Overlay
-					styles={{ justifyContent: "space-between" }}
-					shouldHide={shouldHideActions && !isPaused}
-					onTouchEnd={onOverlayTouchEnd}
-				>
-					<TopBar
-						onBackActionPress={onBackActionPress}
-						onShareActionPress={onShareActionPress}
-						onOpenInBrowserActionPress={onOpenInBrowserActionPress}
-					/>
-					<View style={{ alignItems: "center" }}>
-						<IconButton
-							icon={isPaused ? "play" : "pause"}
-							size={50}
-							onPress={togglePauseState}
-							mode="contained-tonal"
+				<Pressable onPress={onOverlayTouchEnd} style={styles.overlay}>
+					<Overlay
+						styles={{ justifyContent: "space-between" }}
+						shouldHide={shouldHideActions && !isPaused}
+					>
+						<TopBar
+							onBackActionPress={onBackActionPress}
+							onShareActionPress={onShareActionPress}
+							onOpenInBrowserActionPress={onOpenInBrowserActionPress}
 						/>
-					</View>
-					<BottomBar
-						isFullscreen={isFullscreen}
-						onFullScreenPress={() =>
-							setIsFullScreen((isFullscreen) => !isFullscreen)
-						}
-					/>
-				</Overlay>
+						<View style={{ alignItems: "center" }}>
+							<IconButton
+								icon={isPaused ? "play" : "pause"}
+								size={50}
+								onPress={togglePauseState}
+								mode="contained-tonal"
+								pointerEvents="box-none"
+							/>
+						</View>
+						<BottomBar
+							currentTime={currentTime}
+							duration={videoData?.duration}
+							isFullscreen={isFullscreen}
+							onFullScreenPress={onFullScreenPress}
+							onSeek={onSeek}
+						/>
+					</Overlay>
+				</Pressable>
 			)}
 		</View>
 	);
@@ -178,14 +205,59 @@ const TopBar: FunctionComponent<TopBarProps> = ({
 interface BottomBarProps {
 	isFullscreen: boolean;
 	onFullScreenPress: () => void;
+	currentTime: number;
+	onSeek: (value: number) => void;
+	duration?: number;
 }
 
 const BottomBar: FunctionComponent<BottomBarProps> = ({
 	isFullscreen,
 	onFullScreenPress,
+	currentTime,
+	duration = 1,
+	onSeek,
 }) => {
+	const theme = useTheme();
+	const durationToDisplay = useMemo(() => {
+		return secondsToHMS(duration);
+	}, [duration]);
+
+	const timeToDisplay = useMemo(() => {
+		return secondsToHMS(currentTime);
+	}, [currentTime]);
+
 	return (
-		<View>
+		<View
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				gap: 8,
+				paddingVertical: 16,
+				paddingHorizontal: 8,
+			}}
+		>
+			<View style={{ flex: 1 }}>
+				<View
+					style={{
+						flexDirection: "row",
+						justifyContent: "space-between",
+						marginHorizontal: 16,
+						marginBottom: 8,
+					}}
+				>
+					<Text>{timeToDisplay}</Text>
+					<Text>{durationToDisplay}</Text>
+				</View>
+				<Slider
+					value={currentTime}
+					minimumValue={0}
+					maximumValue={duration}
+					minimumTrackTintColor={theme.colors.primary}
+					thumbTintColor={theme.colors.primary}
+					maximumTrackTintColor={theme.colors.secondary}
+					onSlidingComplete={onSeek}
+				/>
+			</View>
 			<Tooltip title="Fullscreen">
 				<IconButton
 					icon={isFullscreen ? "fullscreen-exit" : "fullscreen"}
@@ -199,7 +271,7 @@ const BottomBar: FunctionComponent<BottomBarProps> = ({
 	);
 };
 
-interface OverlayProps extends ViewProps {
+interface OverlayProps {
 	shouldHide: boolean;
 	styles?: StyleProp<ViewStyle>;
 }
@@ -208,13 +280,11 @@ const Overlay: FunctionComponent<PropsWithChildren<OverlayProps>> = ({
 	children,
 	shouldHide,
 	styles: _styles,
-	...props
 }) => {
 	return (
 		<MotiView
 			style={[styles.overlay, _styles]}
 			animate={{ opacity: shouldHide ? 0 : 1 }}
-			{...props}
 		>
 			{children}
 		</MotiView>

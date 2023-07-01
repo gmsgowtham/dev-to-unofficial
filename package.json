@@ -21,6 +21,7 @@
   "dependencies": {
     "@flyerhq/react-native-link-preview": "1.6.0",
     "@react-native-clipboard/clipboard": "1.11.2",
+    "@react-native-community/slider": "4.4.2",
     "@react-native-firebase/app": "18.1.0",
     "@react-native-firebase/crashlytics": "18.1.0",
     "@react-navigation/bottom-tabs": "6.5.8",
