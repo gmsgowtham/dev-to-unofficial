@@ -7,6 +7,7 @@ import { MotiView } from "moti";
 import {
 	FunctionComponent,
 	PropsWithChildren,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -28,15 +29,11 @@ import {
 	Tooltip,
 	useTheme,
 } from "react-native-paper";
-import Video, {
-	OnLoadData,
-	OnProgressData,
-	OnSeekData,
-} from "react-native-video";
+import Video, { OnLoadData, OnProgressData } from "react-native-video";
 
 type Props = NativeStackScreenProps<StackParamList, "Video">;
 
-const initialLoadHideTimeout = 2000;
+const VIDEO_UI_HIDE_TIMEOUT = 2000;
 
 const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const { params } = route;
@@ -48,6 +45,21 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const [isFullscreen, setIsFullScreen] = useState(false);
 	const [shouldHideActions, setShouldHideActions] = useState(false);
 	const playerRef = useRef<Video | null>(null);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+	useEffect(() => {
+		() => {
+			if (timeoutRef.current) clearInterval(timeoutRef.current);
+		};
+	});
+
+	// useEffect(() => {
+	//   if (!shouldHideActions || !isPaused) {
+	//     startUIHideTimeout();
+	//   } else if (isPaused) {
+	//     stopUIHideTimeout();
+	//   }
+	// }, [shouldHideActions, isPaused]);
 
 	const onBackActionPress = () => {
 		navigation.goBack();
@@ -72,7 +84,7 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const onLoad = (data: OnLoadData) => {
 		setVideoData(data);
 		setIsLoading(false);
-		hideActionsAfterTimeout();
+		// startUIHideTimeout();
 	};
 
 	const onBuffer = () => {
@@ -84,24 +96,24 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 		setIsLoading(false);
 	};
 
-	const hideActionsAfterTimeout = () => {
-		// setTimeout(() => {
-		// 	setShouldHideActions(true);
-		// }, initialLoadHideTimeout);
+	const startUIHideTimeout = () => {
+		timeoutRef.current = setTimeout(() => {
+			setShouldHideActions(true);
+		}, VIDEO_UI_HIDE_TIMEOUT);
+	};
+
+	const stopUIHideTimeout = () => {
+		if (timeoutRef.current) clearTimeout(timeoutRef.current);
 	};
 
 	const togglePauseState = () => {
-		if (isPaused) hideActionsAfterTimeout();
-
 		setIsPaused((isPaused) => !isPaused);
 	};
 
-	const onOverlayTouchEnd = () => {
-		if (shouldHideActions) {
-			setShouldHideActions(false);
-		} else {
-			setShouldHideActions(true);
-		}
+	const toggleOverlayVisibility = () => {
+		setShouldHideActions((shouldHideActions) => {
+			return !shouldHideActions;
+		});
 	};
 
 	const onFullScreenPress = () => {
@@ -115,7 +127,9 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	return (
 		<View style={styles.container}>
 			<Video
-				ref={(ref) => playerRef.current === ref}
+				ref={(ref) => {
+					playerRef.current = ref;
+				}}
 				source={{ uri: source }}
 				style={styles.video}
 				poster={cover}
@@ -131,10 +145,10 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 					styles={{ alignItems: "center", justifyContent: "center" }}
 					shouldHide={false}
 				>
-					<ActivityIndicator />
+					<ActivityIndicator size={"large"} />
 				</Overlay>
 			) : (
-				<Pressable onPress={onOverlayTouchEnd} style={styles.overlay}>
+				<Pressable onPress={toggleOverlayVisibility} style={styles.overlay}>
 					<Overlay
 						styles={{ justifyContent: "space-between" }}
 						shouldHide={shouldHideActions && !isPaused}
