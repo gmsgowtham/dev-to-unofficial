@@ -4,6 +4,8 @@ import ArticleScreen from "../screens/Article";
 import BookmarksScreen from "../screens/Bookmarks";
 import LandingScreen from "../screens/LandingFeed";
 import LatestScreen from "../screens/LatestFeed";
+import SettingsScreen from "../screens/Settings";
+import TermsAndConditionsScreen from "../screens/TermsAndConditions";
 import VideoScreen from "../screens/Video";
 import VideosScreen from "../screens/Videos";
 import type { DrawerParamList, StackParamList, TabParamList } from "./types";
@@ -140,6 +142,11 @@ const Router: FunctionComponent<RouterProps> = ({ theme, onReady }) => {
 				<Stack.Screen name="Bookmarks" component={BookmarksScreen} />
 				<Stack.Screen name="Video" component={VideoScreen} />
 				<Stack.Screen name="About" component={AboutScreen} />
+				<Stack.Screen name="Settings" component={SettingsScreen} />
+				<Stack.Screen
+					name="TermsAndConditions"
+					component={TermsAndConditionsScreen}
+				/>
 			</Stack.Navigator>
 		</NavigationContainer>
 	);

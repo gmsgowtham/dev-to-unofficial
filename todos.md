@@ -10,4 +10,14 @@
 - [x] Link preview error handling [#75](https://github.com/gmsgowtham/UDev/pull/75)
 - [x] About page [c634e9e](https://github.com/gmsgowtham/UDev/commit/c634e9e7fedf7295fd27c0bf94f4c4d5c697dec7)
 - [x] Hook to get user selected color scheme [#73](https://github.com/gmsgowtham/UDev/pull/73)
+- [x] Repo information in the ~~about~~ Settings page
 - [ ] Custom implementation for video page (material icons, loading, etc..)
+- [ ] Network issue banner (handle API errors gracefully)
+- [x] Settings screen (Terms & privacy, Github, Contact us, Appearance)
+
+
+## V2
+
+- [ ] Comments
+- [ ] Tags feed
+- [ ] Author profile

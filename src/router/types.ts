@@ -26,4 +26,6 @@ export type StackParamList = {
 		cover: string;
 	};
 	About: undefined;
+	Settings: undefined;
+	TermsAndConditions: undefined;
 };
