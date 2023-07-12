@@ -53,7 +53,7 @@ const useArticleFeedStore = create<ArticleFeedState>()((set, get) => ({
 					page,
 					DEFAULT_PAGE_SIZE,
 				);
-				const responseArticles: ApiArticleFeedItem[] = await response.json();
+				const responseArticles: ApiArticleFeedItem[] = await response.data;
 				set((state) => ({
 					...state,
 					latest: {
@@ -80,7 +80,8 @@ const useArticleFeedStore = create<ArticleFeedState>()((set, get) => ({
 					1,
 					10,
 				);
-				const articles: ApiArticleFeedItem[] = await response.json();
+
+				const articles: ApiArticleFeedItem[] = await response.data;
 				set((state) => ({
 					...state,
 					latest: { ...state.latest, ...BASE_STATE, articles },
@@ -91,6 +92,7 @@ const useArticleFeedStore = create<ArticleFeedState>()((set, get) => ({
 					ToastAndroid.TOP,
 				);
 			} catch (e) {
+				console.log("err", e);
 				set((state) => ({ ...state, latest: setErrorState(state.latest) }));
 			}
 		},
@@ -114,7 +116,7 @@ const useArticleFeedStore = create<ArticleFeedState>()((set, get) => ({
 					page,
 					DEFAULT_PAGE_SIZE,
 				);
-				const responseArticles: ApiArticleFeedItem[] = await response.json();
+				const responseArticles: ApiArticleFeedItem[] = await response.data;
 				set((state) => ({
 					...state,
 					featured: {
@@ -140,7 +142,7 @@ const useArticleFeedStore = create<ArticleFeedState>()((set, get) => ({
 
 			try {
 				const response = await getArticlesList(undefined, 1, 10);
-				const articles: ApiArticleFeedItem[] = await response.json();
+				const articles: ApiArticleFeedItem[] = await response.data;
 				set((state) => ({
 					...state,
 					featured: { ...state.featured, ...BASE_STATE, articles },
