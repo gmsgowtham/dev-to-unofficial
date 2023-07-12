@@ -10,11 +10,13 @@ import { StackParamList } from "../../router/types";
 import useArticleStore from "../../store/articles/article";
 import { HELP_TEXT } from "../../utils/const";
 import { logError } from "../../utils/log";
+import { useNetInfo } from "@react-native-community/netinfo";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { FunctionComponent, useCallback, useState } from "react";
 import { Linking, Share, StyleSheet, ToastAndroid, View } from "react-native";
-import { Appbar, Tooltip } from "react-native-paper";
+import { Appbar, Banner, Tooltip } from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { shallow } from "zustand/shallow";
 
 type Props = NativeStackScreenProps<StackParamList, "Article">;
@@ -24,16 +26,20 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 	const { id, title, url } = params;
 	const _isPostBookmarked = isBookmarked(id);
 	const [isPostBookmarked, setIsPostBookmarked] = useState(_isPostBookmarked);
+	const [showNetworkBanner, setShowNetworkBanner] = useState(true);
+	const netInfo = useNetInfo();
 
-	const { article, loading, fetchArticle, resetArticle } = useArticleStore(
-		(state) => ({
-			article: state.article,
-			fetchArticle: state.fetchArticle,
-			resetArticle: state.reset,
-			loading: state.loading,
-		}),
-		shallow,
-	);
+	const { article, loading, fetchArticle, resetArticle, error } =
+		useArticleStore(
+			(state) => ({
+				article: state.article,
+				fetchArticle: state.fetchArticle,
+				resetArticle: state.reset,
+				loading: state.loading,
+				error: state.error,
+			}),
+			shallow,
+		);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -151,6 +157,22 @@ const ArticleScreen: FunctionComponent<Props> = ({ route, navigation }) => {
 					/>
 				</Tooltip>
 			</Appbar.Header>
+
+			<Banner
+				visible={error && !netInfo.isConnected && showNetworkBanner}
+				actions={[
+					{
+						label: "Close",
+						onPress: () => setShowNetworkBanner(false),
+					},
+				]}
+				icon={({ size, color }) => (
+					<Icon name="signal-off" size={size} color={color} />
+				)}
+			>
+				Uh-oh! It seems like you're not connected to the internet at the moment.
+				Please check your network connection and try again.
+			</Banner>
 
 			{!loading ? (
 				typeof article?.body_markdown !== "undefined" ? (

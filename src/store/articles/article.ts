@@ -1,5 +1,5 @@
+import { getArticle } from "../../api";
 import { ApiArticleItem } from "../../api/types";
-import { API_BASE_URL } from "../../utils/const";
 import { getImageSize } from "../../utils/image";
 import { processMarkdownContent } from "../../utils/markdown";
 import { create } from "zustand";
@@ -19,8 +19,8 @@ const useArticleStore = create<ArticleState>()((set) => ({
 	fetchArticle: async (id: number) => {
 		set({ loading: true, error: false });
 		try {
-			const response = await fetch(`${API_BASE_URL}/articles/${id}`);
-			const article: ApiArticleItem = await response.json();
+			const response = await getArticle(id);
+			const article: ApiArticleItem = await response.data;
 
 			const coverImageSize = await getImageSize(article.cover_image);
 			let aspectRatio = 0;

@@ -38,6 +38,8 @@ const ArticleFeedScreen: FunctionComponent<ArticleFeedProps> = ({
 	};
 
 	const onEndReached = () => {
+		if (articles.length < 1) return;
+
 		const next = page + 1;
 		fetchArticles(next);
 	};
