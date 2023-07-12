@@ -14,6 +14,7 @@
 - [ ] Custom implementation for video page (material icons, loading, etc..)
 - [ ] Network issue banner (handle API errors gracefully)
 - [x] Settings screen (Terms & privacy, Github, Contact us, Appearance)
+- [ ] Article screen scroll parallax
 
 
 ## V2

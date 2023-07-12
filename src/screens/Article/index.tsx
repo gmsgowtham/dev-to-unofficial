@@ -1,6 +1,6 @@
 import ArticleCover from "../../components/ArticleCover";
 import PageLoader from "../../components/Loader/PageLoader";
-import RenderMarkdown from "../../components/MD";
+import RenderMarkdown from "../../components/Markdown";
 import {
 	isBookmarked,
 	removeBookmark,

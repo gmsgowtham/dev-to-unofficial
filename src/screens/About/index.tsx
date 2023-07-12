@@ -38,11 +38,9 @@ const AboutScreen: FunctionComponent<Props> = ({ navigation }) => {
 		<>
 			<Appbar.Header elevated>
 				<Appbar.BackAction onPress={() => navigation.goBack()} />
+				<Appbar.Content title={"About"} />
 			</Appbar.Header>
 			<ScrollView contentContainerStyle={styles.container}>
-				<Text style={styles.heading} variant="headlineLarge">
-					About
-				</Text>
 				<Text variant="bodyMedium" style={styles.description}>
 					UDev is an unofficial client for the popular developer community
 					platform, dev.to. It provides a seamless mobile experience for
@@ -88,9 +86,6 @@ const AboutScreen: FunctionComponent<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
 	container: {
 		padding: 16,
-	},
-	heading: {
-		marginBottom: 12,
 	},
 	description: {
 		marginBottom: 8,

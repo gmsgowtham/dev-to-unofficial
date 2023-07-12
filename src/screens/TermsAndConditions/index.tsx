@@ -1,4 +1,4 @@
-import RenderMarkdown from "../../components/MD/index";
+import RenderMarkdown from "../../components/Markdown";
 import { StackParamList } from "../../router/types";
 import TERM_AND_CONDITION_MARKDOWN from "./md";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
